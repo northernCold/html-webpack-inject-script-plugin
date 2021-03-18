@@ -50,8 +50,8 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
   }
   getScriptSrcPath(filename, compiler) {
     if (path.resolve(filename) === path.normalize(filename)) {
-      const outputPath = compiler.options.output.path;
-      return path.relative(outputPath, filename);
+      const context = compiler.context;
+      return compiler.options.output.publicPath + path.relative(context, filename);
     }
     return filename;
   }
