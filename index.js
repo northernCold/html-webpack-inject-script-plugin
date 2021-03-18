@@ -19,10 +19,11 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
       
       compilation.plugin('html-webpack-plugin-before-html-processing', function (htmlPluginData) {
         if (inline) return;
-        let distPath = compiler.options.output.publicPath + filename;
-        let fullPath = self.getFullPath(context, filename);
-        htmlPluginData.assets.js.unshift(distPath);
-        compilation.assets[filename] = {
+        let scriptSrc = self.getScriptSrcPath(filename, compiler); // this value of the src attribute of script;
+        let fullPath = self.getFullPath(context, filename); // the absolute path to filename
+        let outputRelativePath = path.relative(context, filename); // the dist relative path to filename
+        htmlPluginData.assets.js.unshift(scriptSrc);
+        compilation.assets[outputRelativePath] = {
           source: function () {
             return fs.readFileSync(fullPath, { encoding: "utf-8" })
           },
@@ -45,5 +46,12 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
   }
   getFullPath(context, filename) {
     return path.resolve(context, filename);
+  }
+  getScriptSrcPath(filename, compiler) {
+    if (path.resolve(filename) === path.normalize(filename)) {
+      const outputPath = compiler.options.output.path;
+      return path.relative(outputPath, filename);
+    }
+    return filename;
   }
 }
