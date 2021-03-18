@@ -20,6 +20,7 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
       compilation.plugin('html-webpack-plugin-before-html-processing', function (htmlPluginData) {
         if (inline) return;
         let scriptSrc = self.getScriptSrcPath(filename, compiler); // this value of the src attribute of script;
+        scriptSrc = scriptSrc.replace(/\\/g, "/");
         let fullPath = self.getFullPath(context, filename); // the absolute path to filename
         let outputRelativePath = path.relative(context, filename); // the dist relative path to filename
         htmlPluginData.assets.js.unshift(scriptSrc);
