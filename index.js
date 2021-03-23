@@ -1,23 +1,34 @@
 const fs = require("fs");
 const path = require("path");
-
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = class HtmlWebpackInjectScriptPlugin {
   constructor(options) {
-    this.filename = options?.filename;
+    this.filename = options.filename;
     this.inline = options.inline || false;
   }
   apply(compiler) {
-    const { filename, inline } = this;
-    const context = compiler.context;
-    const self = this;
     compiler.hooks.compilation.tap("HtmlWebpackInjectScriptPlugin", compilation => {
-      compilation.plugin('html-webpack-plugin-alter-asset-tags', function (htmlPluginData) {
+      const { filename, inline } = this;
+      const context = compiler.context;
+      const self = this;
+      let beforeHtmlProcessing;
+      let alterAssetTags;
+      if (HtmlWebpackPlugin.version >= 4) {
+        const hooks = HtmlWebpackPlugin.getHooks(compilation);
+  
+        beforeHtmlProcessing = hooks.beforeAssetTagGeneration;
+        alterAssetTags = hooks.alterAssetTags;
+      } else {
+        const { hooks } = compilation;
+        beforeHtmlProcessing = hooks.htmlWebpackPluginBeforeHtmlProcessing;
+        alterAssetTags = hooks.htmlWebpackPluginAlterAssetTags;
+      }
+      alterAssetTags.tap("html-webpack-plugin-before-html-processing", function (htmlPluginData) {
         if (!inline) return;
         let script = self.createInlineTagScript(context, filename)
         htmlPluginData.body.unshift(script);
-      });
-      
-      compilation.plugin('html-webpack-plugin-before-html-processing', function (htmlPluginData) {
+      })
+      beforeHtmlProcessing.tap("HtmlWebpackInjectScriptPlugin", function (htmlPluginData) {
         if (inline) return;
         let scriptSrc = self.getScriptSrcPath(filename, compiler); // this value of the src attribute of script;
         scriptSrc = scriptSrc.replace(/\\/g, "/");
@@ -49,9 +60,11 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
     return path.resolve(context, filename);
   }
   getScriptSrcPath(filename, compiler) {
+    let publicPath = compiler.options.output.publicPath;
+    publicPath === "auto" && (publicPath = ""); // todo Resolve the case where the publicPath is AUTO
     if (path.resolve(filename) === path.normalize(filename)) {
       const context = compiler.context;
-      return compiler.options.output.publicPath + path.relative(context, filename);
+      return publicPath + path.relative(context, filename);
     }
     return filename;
   }
