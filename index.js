@@ -7,12 +7,13 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
     this.inline = options.inline || false;
   }
   apply(compiler) {
-    compiler.hooks.compilation.tap("HtmlWebpackInjectScriptPlugin", compilation => {
+    compiler.hooks.compilation.tap("html-webpack-plugin-before-html-processing", compilation => {
       const { filename, inline } = this;
       const context = compiler.context;
       const self = this;
       let beforeHtmlProcessing;
       let alterAssetTags;
+      
       if (HtmlWebpackPlugin.version >= 4) {
         const hooks = HtmlWebpackPlugin.getHooks(compilation);
   
@@ -28,7 +29,7 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
         let script = self.createInlineTagScript(context, filename)
         htmlPluginData.body.unshift(script);
       })
-      beforeHtmlProcessing.tap("HtmlWebpackInjectScriptPlugin", function (htmlPluginData) {
+      beforeHtmlProcessing.tap("html-webpack-plugin-before-html-processing", function (htmlPluginData) {
         if (inline) return;
         let scriptSrc = self.getScriptSrcPath(filename, compiler); // this value of the src attribute of script;
         scriptSrc = scriptSrc.replace(/\\/g, "/");
@@ -61,7 +62,7 @@ module.exports = class HtmlWebpackInjectScriptPlugin {
   }
   getScriptSrcPath(filename, compiler) {
     let publicPath = compiler.options.output.publicPath;
-    publicPath === "auto" && (publicPath = ""); // todo Resolve the case where the publicPath is AUTO
+    publicPath === "auto" && (publicPath = ""); // todo Resolve the case when the publicPath is AUTO
     if (path.resolve(filename) === path.normalize(filename)) {
       const context = compiler.context;
       return publicPath + path.relative(context, filename);
